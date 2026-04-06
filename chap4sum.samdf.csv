@@ -1,0 +1,75 @@
+"","Sample","Experiment","Temperature","Treatment","Week","is.neg"
+"Mat_10P_TCATTC_","Mat_10P_TCATTC_","Summer","26","Many Small","1",FALSE
+"Mat_11P_TCATTC_","Mat_11P_TCATTC_","Summer","26","Many Small","1",FALSE
+"Mat_12P_TCATTC_","Mat_12P_TCATTC_","Summer","26","ND","1",FALSE
+"Mat_13P_TCATTC_","Mat_13P_TCATTC_","Summer","22","HD","3",FALSE
+"Mat_14P_TCATTC_","Mat_14P_TCATTC_","Summer","22","HD","3",FALSE
+"Mat_15P_TCATTC_","Mat_15P_TCATTC_","Summer","22","HD","3",FALSE
+"Mat_16P_TCATTC_","Mat_16P_TCATTC_","Summer","22","Few Large","3",FALSE
+"Mat_17P_TCATTC_","Mat_17P_TCATTC_","Summer","22","Few Large","3",FALSE
+"Mat_18P_TCCCGA_","Mat_18P_TCCCGA_","Summer","22","Few Large","3",FALSE
+"Mat_19P_TCCCGA_","Mat_19P_TCCCGA_","Summer","22","Few Small","3",FALSE
+"Mat_1P_TATAAT_","Mat_1P_TATAAT_","Summer","22","HD","1",FALSE
+"Mat_20P_TCCCGA_","Mat_20P_TCCCGA_","Summer","22","Few Small","3",FALSE
+"Mat_21P_TCCCGA_","Mat_21P_TCCCGA_","Summer","22","Few Small","3",FALSE
+"Mat_22P_TCCCGA_","Mat_22P_TCCCGA_","Summer","22","Many Small","3",FALSE
+"Mat_23P_TCCCGA_","Mat_23P_TCCCGA_","Summer","22","Many Small","3",FALSE
+"Mat_24P_TCCCGA_","Mat_24P_TCCCGA_","Summer","22","Many Small","3",FALSE
+"Mat_25P_TCCCGA_","Mat_25P_TCCCGA_","Summer","22","ND","3",FALSE
+"Mat_26P_TCCCGA_","Mat_26P_TCCCGA_","Summer","22","ND","3",FALSE
+"Mat_27P_TCCCGA_","Mat_27P_TCCCGA_","Summer","22","ND","3",FALSE
+"Mat_28P_TCCCGA_","Mat_28P_TCCCGA_","Summer","26","Few Large","3",FALSE
+"Mat_29P_TCCCGA_","Mat_29P_TCCCGA_","Summer","26","Few Large","3",FALSE
+"Mat_2P_TATAAT_","Mat_2P_TATAAT_","Summer","22","ND","1",FALSE
+"Mat_30P_TCGGCA_","Mat_30P_TCGGCA_","Summer","26","Few Large","3",FALSE
+"Mat_31P_TCGGCA_","Mat_31P_TCGGCA_","Summer","26","Few Small","3",FALSE
+"Mat_32P_TCGGCA_","Mat_32P_TCGGCA_","Summer","26","Few Small","3",FALSE
+"Mat_33P_TCGGCA_","Mat_33P_TCGGCA_","Summer","26","Few Small","3",FALSE
+"Mat_34P_TCGGCA_","Mat_34P_TCGGCA_","Summer","26","Many Small","3",FALSE
+"Mat_35P_TCGGCA_","Mat_35P_TCGGCA_","Summer","26","Many Small","3",FALSE
+"Mat_36P_TCGGCA_","Mat_36P_TCGGCA_","Summer","26","Many Small","3",FALSE
+"Mat_37P_TCGGCA_","Mat_37P_TCGGCA_","Summer","26","ND","3",FALSE
+"Mat_38P_TCGGCA_","Mat_38P_TCGGCA_","Summer","26","ND","3",FALSE
+"Mat_3P_TATAAT_","Mat_3P_TATAAT_","Summer","26","Few Large","1",FALSE
+"Mat_4P_TATAAT_","Mat_4P_TATAAT_","Summer","26","Few Large","1",FALSE
+"Mat_5P_TATAAT_","Mat_5P_TATAAT_","Summer","26","Few Large","1",FALSE
+"Mat_6P_TCATTC_","Mat_6P_TCATTC_","Summer","26","Few Small","1",FALSE
+"Mat_7P_TCATTC_","Mat_7P_TCATTC_","Summer","26","Few Small","1",FALSE
+"Mat_8P_TCATTC_","Mat_8P_TCATTC_","Summer","26","Few Small","1",FALSE
+"Mat_9P_TCATTC_","Mat_9P_TCATTC_","Summer","26","Many Small","1",FALSE
+"MM_Nab_A1_","MM_Nab_A1_","Summer","22","HD","1",FALSE
+"MM_Nab_A10_","MM_Nab_A10_","Summer","22","HD","5",FALSE
+"MM_Nab_A11_","MM_Nab_A11_","Summer","22","HD","5",FALSE
+"MM_Nab_A12_","MM_Nab_A12_","Summer","22","HD","5",FALSE
+"MM_Nab_A2_","MM_Nab_A2_","Summer","22","Few Large","1",FALSE
+"MM_Nab_A3_","MM_Nab_A3_","Summer","22","Few Large","1",FALSE
+"MM_Nab_A4_","MM_Nab_A4_","Summer","22","Few Small","1",FALSE
+"MM_Nab_A5_","MM_Nab_A5_","Summer","22","Few Small","1",FALSE
+"MM_Nab_A6_","MM_Nab_A6_","Summer","22","Many Small","1",FALSE
+"MM_Nab_A7_","MM_Nab_A7_","Summer","22","Many Small","1",FALSE
+"MM_Nab_A8_","MM_Nab_A8_","Summer","22","ND","1",FALSE
+"MM_Nab_A9_","MM_Nab_A9_","Summer","22","ND","1",FALSE
+"MM_Nab_B1_","MM_Nab_B1_","Summer","22","Few Large","5",FALSE
+"MM_Nab_B10_","MM_Nab_B10_","Summer","22","ND","5",FALSE
+"MM_Nab_B11_","MM_Nab_B11_","Summer","22","ND","5",FALSE
+"MM_Nab_B12_","MM_Nab_B12_","Summer","22","ND","5",FALSE
+"MM_Nab_B2_","MM_Nab_B2_","Summer","22","Few Large","5",FALSE
+"MM_Nab_B3_","MM_Nab_B3_","Summer","22","Few Large","5",FALSE
+"MM_Nab_B4_","MM_Nab_B4_","Summer","22","Few Small","5",FALSE
+"MM_Nab_B5_","MM_Nab_B5_","Summer","22","Few Small","5",FALSE
+"MM_Nab_B6_","MM_Nab_B6_","Summer","22","Few Small","5",FALSE
+"MM_Nab_B7_","MM_Nab_B7_","Summer","22","Many Small","5",FALSE
+"MM_Nab_B8_","MM_Nab_B8_","Summer","22","Many Small","5",FALSE
+"MM_Nab_B9_","MM_Nab_B9_","Summer","22","Many Small","5",FALSE
+"MM_Nab_C1_","MM_Nab_C1_","Summer","26","Few Large","5",FALSE
+"MM_Nab_C10_","MM_Nab_C10_","Summer","26","ND","5",FALSE
+"MM_Nab_C11_","MM_Nab_C11_","Summer","26","ND","5",FALSE
+"MM_Nab_C12_","MM_Nab_C12_","Summer","26","ND","5",FALSE
+"MM_Nab_C2_","MM_Nab_C2_","Summer","26","Few Large","5",FALSE
+"MM_Nab_C3_","MM_Nab_C3_","Summer","26","Few Large","5",FALSE
+"MM_Nab_C4_","MM_Nab_C4_","Summer","26","Few Small","5",FALSE
+"MM_Nab_C5_","MM_Nab_C5_","Summer","26","Few Small","5",FALSE
+"MM_Nab_C6_","MM_Nab_C6_","Summer","26","Few Small","5",FALSE
+"MM_Nab_C7_","MM_Nab_C7_","Summer","26","Many Small","5",FALSE
+"MM_Nab_C8_","MM_Nab_C8_","Summer","26","Many Small","5",FALSE
+"MM_Nab_C9_","MM_Nab_C9_","Summer","26","Many Small","5",FALSE
