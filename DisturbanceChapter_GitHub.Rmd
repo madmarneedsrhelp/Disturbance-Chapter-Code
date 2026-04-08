@@ -3,7 +3,7 @@ title: "DisturbanceChapter_GitHub"
 output: html_document
 date: "2026-04-06"
 ---
-Summarized Code:
+Summarized Code/Clean Code: 
 
 Community Composition:
 
@@ -25,11 +25,20 @@ library(viridis)
 library("microViz")
 ```
 
+```{r}
+getwd()
+```
+
 read in clean phyloseq object & seqtab object from dada2pipeline with rel abundance counts applied
 (ps.cleaner.rel)
 
+```{r}
+# load it back into R
+ps.cleaner.clr <- readRDS("ch4.ps.cleaner.clr.rds")
+```
+
 applying a CLR (Centered Log-Ratio) transformation 
-making a sequence table
+making a sequence table (already loaded in clr version above, so skip this for now)
 ```{r}
 ps.cleaner.clr <- microbiome::transform(ps.cleaner.rel,'clr')
 seqtab.clr <- data.frame(otu_table(ps.cleaner.clr))
@@ -49,6 +58,7 @@ ps.temp <- subset_samples(ps.cleaner.clr, Experiment == "Temp")
 
 PCOA plots to visualize spread before stats!
 ~Lab Dist (Summer)
+figure 1a
 ```{r}
 # Make Treatment a factor in the desired order
 ps.summer@sam_data$Treatment <- factor(
@@ -117,6 +127,7 @@ sum.treat.temp.week.ord
 ```
 
 ~Field Dist Experiment(Field)
+figure 3a
 ```{r}
 # Make Treatment a factor
 sample_data(ps.field)$Treatment <- factor(
@@ -176,6 +187,7 @@ field.treat.ord
 ```
 
 ~ Temperature Experiment (Temp)
+figure 4a
 ```{r}
 # Make factors
 sample_data(ps.temp)$Week <- factor(sample_data(ps.temp)$Week, levels = c("1", "3", "5"))
@@ -246,9 +258,6 @@ Beta Dispersion:
 *is beta dispersion differs a lot, PERMANOVA results may be biased
 
 ~Summer
-```{r}
-```
-
 
 ```{r}
 sum.bet.all1 <- betadisper(sum.dist.all,sum.samdf$Temperature)
@@ -256,7 +265,6 @@ sum.bet.all2 <- betadisper(sum.dist.all,sum.samdf$Week)
 sum.bet.all3 <- betadisper(sum.dist.all,sum.samdf$Treatment)
 ```
 
-*are there true differences?
 ```{r}
 #temp
 sum.bet.all1
@@ -309,6 +317,303 @@ TukeyHSD(temp.bet.all2)
 - weeks 3 & 1
 - weeks 5 & 1 
 
+
 Beta Diversity (PERMANOVAS)
 
+~ summer full model 
+```{r}
+adonis2(sum.dist.all ~ Treatment * Temperature *Week , data=sum.samdf, permutations=9999)
+```
+Treatment                   4    90414 0.08753 1.7698 0.0001 ***
+Temperature                 1    23652 0.02290 1.8519 0.0021 ** 
+Week                        1    59115 0.05723 4.6286 0.0001 ***
+Treatment:Temperature       3    53248 0.05155 1.3897 0.0026 ** 
+
+Since treatment:temp interaction, need to tear apart interaction 
+week has a significant difference, may be influence by beta dispersion 
+
+subset data ~ are treatments different at 22C only? YES
+Example:
+```{r}
+# Logical index for samples at Temperature 22
+temp22_idx <- sum.samdf$Temperature == "22"
+
+# Subset the distance matrix (use square brackets once)
+dist_temp22 <- as.dist(as.matrix(sum.dist.all)[temp22_idx, temp22_idx])
+
+# Subset metadata to match
+meta_temp22 <- sum.samdf[temp22_idx, ]
+
+# Run PERMANOVA
+adonis2(dist_temp22 ~ Treatment, data = meta_temp22, permutations = 9999)
+
+
+```
+subset data ~ are treatments different at 26C only? YES
+```{r}
+# Logical index for samples at Temperature 22
+temp26_idx <- sum.samdf$Temperature == "26"
+
+# Subset the distance matrix (use square brackets once)
+dist_temp26 <- as.dist(as.matrix(sum.dist.all)[temp26_idx, temp26_idx])
+
+# Subset metadata to match
+meta_temp26 <- sum.samdf[temp26_idx, ]
+
+# Run PERMANOVA
+adonis2(dist_temp26 ~ Treatment, data = meta_temp26, permutations = 9999)
+```
+subset data ~ are temperatures different between the treatments? 
+Yes, for ND & Few Small 
+No, for Many Small & Few Large 
+```{r}
+# Get unique treatment levels
+treatments <- unique(sum.samdf$Treatment)
+
+# Loop over each treatment to test for temperature effect
+for (treat in treatments) {
+  
+  cat("\n--- PERMANOVA: Temperature differences within Treatment =", treat, "---\n")
+  
+  # Logical index for samples matching the treatment
+  treat_idx <- sum.samdf$Treatment == treat
+  
+  # Subset distance matrix and metadata
+  dist_subset <- as.dist(as.matrix(sum.dist.all)[treat_idx, treat_idx])
+  meta_subset <- sum.samdf[treat_idx, ]
+  
+  # Check if at least 2 temperature levels are present
+  if (length(unique(meta_subset$Temperature)) > 1) {
+    # Run PERMANOVA
+    result <- adonis2(dist_subset ~ Temperature, data = meta_subset, permutations = 9999)
+    print(result)
+  } else {
+    cat("Not enough temperature levels to compare for this treatment.\n")
+  }
+}
+
+```
+
+interaction plots for summer (lab) experiment
+
+
+```{r}
+ordination_df2 <- read.csv("ordination_df2.csv")
+```
+
+figure 1B (left)
+```{r}
+#final interaction plot 1 for summer
+ordination_df2$Treatment <- factor(
+  ordination_df2$Treatment,
+  levels = c("ND", "Few Small", "Many Small", "Few Large", "HD")
+)
+sum.intplot1 <- ggplot(ordination_df2, aes(
+  x = as.factor(Temperature),
+  y = PCoA1,
+  color = Treatment,
+  group = Treatment
+)) +
+  stat_summary(fun = mean, geom = "line", size = 1.2) +
+  stat_summary(fun = mean, geom = "point", size = 3) +
+  scale_color_manual(values = c(
+    "ND" = "#999999",        # neutral gray
+    "Few Small" = "#d95f02", # orange
+    "Many Small" = "#0072B2",# magenta-pink
+    "Few Large" = "#1b9e77", # teal-green
+    "HD" = "purple3"         # purple
+  )) +
+  labs(
+    title = "",
+    x = "Temperature",
+    y = "PCoA Axis 1 score",
+    color = "Treatment"
+  ) +
+  theme_minimal(base_size = 16) +
+  theme(
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    legend.text = element_text(size = 14)
+  )
+
+sum.intplot1
+
+
+```
+figure 1B (right)
+```{r}
+# Then create the plot
+sum.intplot2 <- ggplot(ordination_df2, aes(x = Treatment, y = PCoA1, color = as.factor(Temperature), group = Temperature)) +
+  stat_summary(fun = mean, geom = "line", size = 1.2) +
+  stat_summary(fun = mean, geom = "point", size = 3) +
+  scale_color_manual(
+    values = c(
+      "22" = "blue3",
+      "26" = "red3"
+    )
+  ) +
+  labs(
+    title = "",
+    x = "Grazing Treatment",
+    y = "PCoA Axis 1 score",
+    color = "Temperature"
+  ) +
+  
+   theme_minimal(base_size = 16) +   # ← increases all font sizes (default = 11)
+  theme(
+    axis.title = element_text(size = 20),
+    axis.text = element_text(size = 13),
+    legend.title = element_text(size = 20),
+    legend.text = element_text(size = 17)
+  )
+
+
+sum.intplot2
+```
+
+
+
+week alone (simple main effect)
+
+```{r}
+adonis2(sum.dist.all ~ Week , data=sum.samdf, permutations=9999)
+pairwise.adonis2(sum.dist.all ~ Week , data = sum.samdf, permutations = 9999)
+```
+
+Bar plots *updated
+
+upload mdf files, what are they?  a tidy data frame of relative abundances per sample and taxonomic group, formatted for plotting stacked bar plots ~ we want to group the stacked bar plots so we don't have a bunch of rare species, lets look
+```{r}
+mdffam.sum <- read.csv("ch4.mdffam.summer.csv")
+mdffam.field <- read.csv("ch4.mdffam.field.csv")
+mdffam.temp <- read.csv("ch4.mdffam.temp.csv")
+```
+
+calculates the total abundance of each Family across all samples, sorts them by the rel abundance, and converts them into percentages of the total 
+
+groups rare families into one group (<1% rel abundance) 
+
+groups taxa with "_" which means it was assigned at a higher taxonomy 
+```{r}
+# Aggregate total relative abundance per Family across all samples
+top_fam1 <- aggregate(Abundance ~ Family, data = mdffam.sum, FUN = sum)
+
+# Sort in descending order
+top_fam1 <- top_fam1[order(-top_fam1$Abundance), ]
+
+# Calculate the total abundance
+total_abundance <- sum(top_fam1$Abundance)
+
+# Calculate percentage for each Family
+top_fam1$Percentage <- (top_fam1$Abundance / total_abundance) * 100
+
+# Group rare families (<1%) and those lacking family-level assignment
+top_fam1$Family_grouped <- ifelse(
+  grepl("_", top_fam1$Family),             # condition 1: contains "_"
+  "Assigned at higher taxonomy",           # assign this label
+  ifelse(
+    top_fam1$Percentage < 1,              # condition 2: <1% abundance
+    "Rare Families",                       # assign this label
+    top_fam1$Family                        # else keep original Family
+  )
+)
+
+# View the result
+print(top_fam1)
+```
+
+okay cool, but this is for the entire summer experiment. when we make the stacked bar plots we want to group by disturbance, temperature, and week, so we need to do some more manipulations 
+
+- The top_fam1$Percentage is summed across all samples, so it only tells  what fraction of the total dataset each Family contributes.
+- For stacked bar plots,  each bar (e.g., each Treatment or each Temperature or each Week) should  sum to 100%. Otherwise, bars won’t reflect relative community composition within that group.
+
+```{r}
+library(dplyr)
+
+library(dplyr)
+
+# Function to prepare stacked bar plot data
+prep_bar_data <- function(df, group_var) {
+  
+  df %>%
+    group_by(.data[[group_var]], Family) %>%
+    summarise(Abundance_sum = sum(Abundance), .groups = "drop") %>%
+    
+    group_by(.data[[group_var]]) %>%
+    mutate(Percentage = Abundance_sum / sum(Abundance_sum) * 100) %>%
+    ungroup() %>%
+    
+    mutate(Family_grouped = case_when(
+      grepl("_", Family) ~ "Assigned at higher taxonomy",
+      Percentage < 1 ~ "Rare Families",
+      TRUE ~ Family
+    ))
+}
+
+# Apply to each factor
+mdf_treatment   <- prep_bar_data(mdffam.sum, "Treatment")
+mdf_temperature <- prep_bar_data(mdffam.sum, "Temperature")
+mdf_week        <- prep_bar_data(mdffam.sum, "Week")
+```
+
+let's make 3 stacked bar plots with the same color scheme!
+Figure 1C
+
+```{r}
+# Get all unique Family_grouped levels across all datasets
+all_families <- unique(c(
+  mdf_treatment$Family_grouped,
+  mdf_temperature$Family_grouped,
+  mdf_week$Family_grouped
+))
+```
+```{r}
+library(scales)
+palette_colors <- hue_pal(h = c(0, 360) + 15, c = 100, l = 65)(length(all_families))
+names(palette_colors) <- all_families
+
+palette_colors["Rare Families"] <- "grey70"
+palette_colors["Assigned at higher taxonomy"] <- "darkblue"
+palette_colors["Unknown Family"] <- "darkblue"
+
+```
+
+```{r}
+library(ggplot2)
+
+plot_bar <- function(df, xvar) {
+  ggplot(df, aes(x = .data[[xvar]], y = Percentage, fill = Family_grouped)) +
+    geom_bar(stat = "identity") +
+    scale_fill_manual(values = palette_colors) +
+    labs(
+      x = xvar,
+      y = "Relative Abundance (%)",
+      fill = "Family"
+    ) +
+    theme_minimal(base_size = 16) +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      legend.text = element_text(size = 10),
+      legend.title = element_text(size = 12)
+    )
+}
+
+plot_treatment   <- plot_bar(mdf_treatment, "Treatment")
+plot_temperature <- plot_bar(mdf_temperature, "Temperature")
+plot_week        <- plot_bar(mdf_week, "Week")
+```
+
+```{r}
+plot_treatment
+```
+
+```{r}
+plot_temperature <- plot_bar(mdf_temperature, "Temperature")
+plot_temperature
+```
+```{r}
+plot_week<- plot_bar(mdf_week, "Week")
+plot_week
+```
 
