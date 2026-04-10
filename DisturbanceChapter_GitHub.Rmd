@@ -25,6 +25,20 @@ library(viridis)
 library("microViz")
 ```
 
+libraries:
+```{r}
+library(ggplot2)
+library(cowplot)
+library(phyloseq)
+library(car)
+library(ggpubr)
+library(vegan) #vegan 2.6-4
+library(dada2)
+library(RColorBrewer)
+library(dplyr)
+library(tidyverse)
+```
+
 ```{r}
 getwd()
 ```
@@ -57,8 +71,8 @@ ps.temp <- subset_samples(ps.cleaner.clr, Experiment == "Temp")
 ```
 
 PCOA plots to visualize spread before stats!
-~Lab Dist (Summer)
-figure 1a
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~Lab Dist (Summer) FIGURE 1A
 ```{r}
 # Make Treatment a factor in the desired order
 ps.summer@sam_data$Treatment <- factor(
@@ -125,9 +139,8 @@ sum.treat.temp.week.ord <- plot_ordination(
 
 sum.treat.temp.week.ord
 ```
-
-~Field Dist Experiment(Field)
-figure 3a
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~Field Dist Experiment(Field) Figure 3A
 ```{r}
 # Make Treatment a factor
 sample_data(ps.field)$Treatment <- factor(
@@ -185,9 +198,9 @@ field.treat.ord <- plot_ordination(ps.field, ord) +
 
 field.treat.ord
 ```
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~ Temperature Experiment (Temp) Figure 4A
 
-~ Temperature Experiment (Temp)
-figure 4a
 ```{r}
 # Make factors
 sample_data(ps.temp)$Week <- factor(sample_data(ps.temp)$Week, levels = c("1", "3", "5"))
@@ -229,8 +242,8 @@ temp.temp.week.ord <- plot_ordination(ps.temp, ord) +
 temp.temp.week.ord
 #good enough, will edit key later
 ```
-
-Set up for Beta Dispersion
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Set up for Beta Dispersion ~ ALL EXPERIMENTS
 
 -subset seqtab by experiment (sequence table)
 ```{r}
@@ -252,12 +265,10 @@ sum.dist.all <- vegdist(sum.seqtab, method = "euclidean")
 field.dist.all <- vegdist(field.seqtab, method = "euclidean")
 temp.dist.all <- vegdist(temp.seqtab, method = "euclidean")
 ```
-
-Beta Dispersion: 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+SUMMER (OR LAB DIST) Beta Dispersion: 
 *looks at spread of points in a multidemensional space
 *is beta dispersion differs a lot, PERMANOVA results may be biased
-
-~Summer
 
 ```{r}
 sum.bet.all1 <- betadisper(sum.dist.all,sum.samdf$Temperature)
@@ -289,16 +300,18 @@ sum.bet.all3
 anova(sum.bet.all3)
 ```
 *no differences in dispersion between treatments
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+FIELD Beta Dispersion: 
 
-~Field
 ```{r}
 field.bet.all <- betadisper(field.dist.all,field.samdf$Treatment)
 field.bet.all
 anova(field.bet.all)
 ```
 *no differences in dispersion between  treatments
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+TEMP Beta Dispersion: 
 
-~Temp
 ```{r}
 #temp
 temp.bet.all1 <- betadisper(temp.dist.all,temp.samdf$Temperature)
@@ -317,10 +330,11 @@ TukeyHSD(temp.bet.all2)
 - weeks 3 & 1
 - weeks 5 & 1 
 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+LAB (SUMMER) RESULTS! 
 
-Beta Diversity (PERMANOVAS)
-
-~ summer full model 
+Beta Diversity & Comm Comp Stats
+~ full permanova model
 ```{r}
 adonis2(sum.dist.all ~ Treatment * Temperature *Week , data=sum.samdf, permutations=9999)
 ```
@@ -394,9 +408,7 @@ for (treat in treatments) {
 
 ```
 
-interaction plots for summer (lab) experiment
-
-
+interaction plots 
 ```{r}
 ordination_df2 <- read.csv("ordination_df2.csv")
 ```
@@ -472,16 +484,13 @@ sum.intplot2 <- ggplot(ordination_df2, aes(x = Treatment, y = PCoA1, color = as.
 sum.intplot2
 ```
 
-
-
 week alone (simple main effect)
-
 ```{r}
 adonis2(sum.dist.all ~ Week , data=sum.samdf, permutations=9999)
 pairwise.adonis2(sum.dist.all ~ Week , data = sum.samdf, permutations = 9999)
 ```
 
-Bar plots *updated
+Bar plots *UPDATED
 
 upload mdf files, what are they?  a tidy data frame of relative abundances per sample and taxonomic group, formatted for plotting stacked bar plots ~ we want to group the stacked bar plots so we don't have a bunch of rare species, lets look
 ```{r}
@@ -493,7 +502,6 @@ mdffam.temp <- read.csv("ch4.mdffam.temp.csv")
 calculates the total abundance of each Family across all samples, sorts them by the rel abundance, and converts them into percentages of the total 
 
 groups rare families into one group (<1% rel abundance) 
-
 groups taxa with "_" which means it was assigned at a higher taxonomy 
 ```{r}
 # Aggregate total relative abundance per Family across all samples
@@ -522,12 +530,25 @@ top_fam1$Family_grouped <- ifelse(
 # View the result
 print(top_fam1)
 ```
-
+~~~~~~~~~~~~
 okay cool, but this is for the entire summer experiment. when we make the stacked bar plots we want to group by disturbance, temperature, and week, so we need to do some more manipulations 
+- The top_fam1$Percentage is summed across all samples, so it only tells  what fraction of the total dataset each Family contributes.For stacked bar plots,  each bar (e.g., each Treatment or each Temperature or each Week) should  sum to 100%. - Otherwise, bars won’t reflect relative community composition within that group.)
 
-- The top_fam1$Percentage is summed across all samples, so it only tells  what fraction of the total dataset each Family contributes.
-- For stacked bar plots,  each bar (e.g., each Treatment or each Temperature or each Week) should  sum to 100%. Otherwise, bars won’t reflect relative community composition within that group.
+~~~~~~~~
+created prep_bar_data() that:
+- Groups data by a chosen variable (Treatment / Temperature / Week) and Family
+- Sums abundances
+- Converts them into relative abundance (%) within each group
 
+Collapses rare structure using:
+"Assigned at higher taxonomy" (families with underscores)
+"Rare Families" (< 1%)
+Otherwise keeps original family name
+
+applied it to:
+mdf_treatment
+mdf_temperature
+mdf_week
 ```{r}
 library(dplyr)
 
@@ -557,35 +578,97 @@ mdf_temperature <- prep_bar_data(mdffam.sum, "Temperature")
 mdf_week        <- prep_bar_data(mdffam.sum, "Week")
 ```
 
-let's make 3 stacked bar plots with the same color scheme!
-Figure 1C
 
+assigning pallette colors! 
 ```{r}
-# Get all unique Family_grouped levels across all datasets
-all_families <- unique(c(
-  mdf_treatment$Family_grouped,
-  mdf_temperature$Family_grouped,
-  mdf_week$Family_grouped
-))
+palette_colors <- c(
+
+  # Alphaproteobacteria (marine, surface-associated)
+  "Rhodobacteraceae" = "#1f78b4",
+  "Hyphomonadaceae"  = "#4ea3d9",
+
+  # Gammaproteobacteria (heterotrophs, sulfur cycling, etc.)
+  "Alteromonadaceae" = "#33a02c",
+  "Marinobacteraceae"= "#66c2a5",
+  "Halieaceae"       = "#41ae76",
+  "Woeseiaceae"      = "#238b45",
+
+  # Deltaproteobacteria (sulfate reducers)
+  "Desulfobacteraceae"   = "#006d2c",
+  "Desulfocapsaceae"     = "#31a354",
+  "Desulfovibrionaceae"  = "#74c476",
+
+  # Bacteroidetes (degraders, mats, organic matter)
+  "Flavobacteriaceae" = "#984ea3",
+  "Saprospiraceae"    = "#b07cc6",
+  "Cryomorphaceae"    = "#c2a5cf",
+  "Cyclobacteriaceae" = "#8c6bb1",
+  "Bacteroidetes BD2-2" = "#d4b9da",
+
+  # Planctomycetes / PVC group
+  "Pirellulaceae"     = "#ff7f00",
+  "Phycisphaeraceae"  = "#fdae6b",
+  "Puniceicoccaceae"  = "#e6550d",
+
+  # Cyanobacteria (phototrophs in mats)
+  "Coleofasciculaceae" = "#e41a1c",
+  "Nodosilineaceae"    = "#fb6a4a",
+
+  # Firmicutes / other gram positives / thermophiles
+  "Thermoanaerobaculaceae" = "#ffd92f",
+  "Trueperaceae"           = "#e6ab02",
+
+  # Spirochaetes
+  "Spirochaetaceae" = "#a65628",
+
+  # Misc /  environmental
+  "A4b"                         = "#6a3d9a",
+  "Acanthopleuribacteraceae"    = "#b15928",
+  "Sandaracinaceae"             = "#b2df8a",
+  "Solimonadaceae"              = "#cab2d6",
+  "Micavibrionaceae"            = "#FF69B4",  # 💖 your pink (kept distinct on purpose)
+
+  # Special 
+  "Rare Families"                = "grey70",
+  "Assigned at higher taxonomy"  = "darkblue",
+  "Unknown Family"               = "black"
+)
 ```
+
+ensuring this worked, should say zero 
 ```{r}
-library(scales)
-palette_colors <- hue_pal(h = c(0, 360) + 15, c = 100, l = 65)(length(all_families))
-names(palette_colors) <- all_families
+setdiff(all_families, names(palette_colors))
+```
 
-palette_colors["Rare Families"] <- "grey70"
-palette_colors["Assigned at higher taxonomy"] <- "darkblue"
-palette_colors["Unknown Family"] <- "darkblue"
 
+```{r}
+#Ordering treatment x axis
+mdf_treatment$Treatment <- factor(
+  mdf_treatment$Treatment,
+  levels = c("ND", "Few Small", "Many Small", "Few Large", "HD")
+)
 ```
 
 ```{r}
-library(ggplot2)
+#  Alphabetical order (forced all plots to have the same stacking order/ color pallette)
+family_levels <- sort(names(palette_colors))
 
+# Apply to all datasets
+mdf_treatment$Family_grouped   <- factor(mdf_treatment$Family_grouped, levels = family_levels)
+mdf_temperature$Family_grouped <- factor(mdf_temperature$Family_grouped, levels = family_levels)
+mdf_week$Family_grouped        <- factor(mdf_week$Family_grouped, levels = family_levels)
+```
+
+
+```{r}
+# Plotting function ~ making the stakced bar plits using relative abundance
 plot_bar <- function(df, xvar) {
   ggplot(df, aes(x = .data[[xvar]], y = Percentage, fill = Family_grouped)) +
     geom_bar(stat = "identity") +
-    scale_fill_manual(values = palette_colors) +
+    scale_fill_manual(
+      values = palette_colors,
+      drop = FALSE
+    ) +
     labs(
       x = xvar,
       y = "Relative Abundance (%)",
@@ -594,26 +677,410 @@ plot_bar <- function(df, xvar) {
     theme_minimal(base_size = 16) +
     theme(
       axis.text.x = element_text(angle = 45, hjust = 1),
-      legend.text = element_text(size = 10),
-      legend.title = element_text(size = 12)
+      legend.text = element_text(size = 9),
+      legend.title = element_text(size = 11)
     )
 }
+```
 
+
+```{r}
+#actual plotting
 plot_treatment   <- plot_bar(mdf_treatment, "Treatment")
 plot_temperature <- plot_bar(mdf_temperature, "Temperature")
 plot_week        <- plot_bar(mdf_week, "Week")
+
+
+# Extract ONE legend (treatment has all the taxa - 1, will add in the last one manually)
+
+legend <- get_legend(
+  plot_treatment +
+    theme(
+      legend.position = "bottom",
+      legend.text = element_text(size = 8),
+      legend.key.size = unit(0.3, "cm"),
+      legend.spacing.y = unit(0.05, "cm"),
+      legend.spacing.x = unit(0.05, "cm")
+    ) +
+    guides(fill = guide_legend(nrow = 5))
+)
+
+#  Remove legends from plots
+plot_treatment_noleg   <- plot_treatment   + theme(legend.position = "none")
+plot_temperature_noleg <- plot_temperature + theme(legend.position = "none")
+plot_week_noleg        <- plot_week        + theme(legend.position = "none")
+
+
+# cowplot combo
+top_row <- plot_grid(
+  plot_treatment_noleg,
+  plot_temperature_noleg,
+  plot_week_noleg,
+  ncol = 3,
+  rel_widths = c(.45, .4, .4)
+)
+
+f1bot <- plot_grid(
+  top_row,
+  legend,
+  ncol = 1,
+  rel_heights = c(.8,.2)
+)
+
+f1bot
 ```
 
 ```{r}
-plot_treatment
+#double check, should say zero 
+setdiff(sort(unique(c(
+  mdf_treatment$Family_grouped,
+  mdf_temperature$Family_grouped,
+  mdf_week$Family_grouped
+))), names(palette_colors))
+```
+```{r}
+ggsave(
+  filename = "fig1bot.pdf",
+  plot = f1bot,
+  width = 14,
+  height = 10
+)
+```
+
+DIFF ABUNDANCE ! ~ structural zero 
+~results take 1-2 hours to run for each one~
+upload raw phyloseq object 
+```{r}
+ps.summer.raw <-readRDS("ps.summer copy.raw.rds")
+```
+
+looking between treatments
+```{r}
+sum.diff.abund.treat <- ancombc2(
+  data = ps.summer.raw,
+  tax_level = "Family",
+  fix_formula = "Treatment",
+  p_adj_method = "holm",
+  group = "Treatment",    # factor you are testing
+  struc_zero = TRUE,        # detects structural zeros (presence/absence)
+  neg_lb = TRUE,
+  em_control = list(
+    tol = 1e-5,
+    max_iter = 100,
+    sensitivity = TRUE      # runs subsampling stability check
+  ),
+  alpha = 0.05,
+  global = TRUE             # adds global tests in addition to pairwise
+)
 ```
 
 ```{r}
-plot_temperature <- plot_bar(mdf_temperature, "Temperature")
-plot_temperature
+#structural zero results (need to clean up in excel)
+View(sum.diff.abund.treat$zero_ind)
+#write.csv(sum.diff.abund.treat$zero_ind, "sum_all_treat_strzeros.csv", row.names = TRUE)
+#sensitivity results (scores are low, this is why we negate global and pairwise results and focus on the robust structural zero results above)
+View(sum.diff.abund.treat$pseudo_sens_tab)
+#write.csv(sum.diff.abund.treat$pseudo_sens_tab, "sum_all_treat_sens.csv", row.names = TRUE)
+```
+
+looking between temperatures
+```{r}
+sum.diff.abund.temp <- ancombc2(
+  data = ps.summer.raw,
+  tax_level = "Family",
+  fix_formula = "Temperature",
+  p_adj_method = "holm",
+  group = "Temperature",    # factor you are testing
+  struc_zero = TRUE,        # detects structural zeros (presence/absence)
+  neg_lb = TRUE,
+  em_control = list(
+    tol = 1e-5,
+    max_iter = 100,
+    sensitivity = TRUE      # runs subsampling stability check
+  ),
+  alpha = 0.05,
+  global = TRUE             # adds global tests in addition to pairwise
+)
+```
+
+```{r}
+#structural zero results (need to clean up in excel)
+View(sum.diff.abund.temp$zero_ind)
+#write.csv(sum.diff.abund.temp$zero_ind, "sum_all_temp_strzeros.csv", row.names = TRUE)
+#sensitivity results (scores are low, this is why we negate global and pairwise results and focus on the robust structural zero results above)
+View(sum.diff.abund.temp$pseudo_sens_tab)
+#write.csv(sum.diff.abund.temp$pseudo_sens_tab, "sum_all_temp_sens.csv", row.names = TRUE)
+```
+
+```{r}
+sum.diff.abund.weeks <- ancombc2(
+  data = ps.summer.raw,
+  tax_level = "Family",
+  fix_formula = "Week",
+  p_adj_method = "holm",
+  group = "Week",    # factor you are testing
+  struc_zero = TRUE,        # detects structural zeros (presence/absence)
+  neg_lb = TRUE,
+  em_control = list(
+    tol = 1e-5,
+    max_iter = 100,
+    sensitivity = TRUE      # runs subsampling stability check
+  ),
+  alpha = 0.05,
+  global = TRUE             # adds global tests in addition to pairwise
+)
+```
+
+```{r}
+#structural zero results (need to clean up in excel)
+View(sum.diff.abund.weeks$zero_ind)
+#write.csv(sum.diff.abund.weeks$zero_ind, "sum_all_weeks_strzeros.csv", row.names = TRUE)
+#sensitivity results (scores are low, this is why we negate global and pairwise results and focus on the robust structural zero results above)
+View(sum.diff.abund.weeks$pseudo_sens_tab)
+#write.csv(sum.diff.abund.weeks$pseudo_sens_tab, "sum_all_weeks_sens.csv", row.names = TRUE)
+```
+
+final lab disturbance community composition (Figure 1) 
+top: sum.treat.temp.week.ord
+middle: sum.intplot1, sum.intplot2 (need to cowplot this)
+bottom: f1bot
+
+```{r}
+library(cowplot)
+sum.int.combo<- plot_grid( sum.intplot1,sum.intplot2, ncol = 2, labels = c("A", "B"))
+sum.int.combo
+```
+okay now cowplot the whole thing! 
+sum.treat.temp.week.ord, sum.int.combo, f1bot
+
+```{r}
+getwd()
+```
+
+```{r}
+#FINAL figure 1. Will clean up in pdf/adobe
+library(cowplot)
+
+# Make top plot narrower
+pA_narrow <- ggdraw() + 
+  draw_plot(sum.treat.temp.week.ord, x = 0.5, y = 0.5, width = 0.7, hjust = 0.5, vjust = 0.5)
+
+# Stack vertically
+figure1 <- plot_grid(
+  pA_narrow,        # narrow top plot
+  sum.int.combo,     # middle plot (full width)
+  f1bot,  # bottom plot (full width)
+  ncol = 1,
+  align = "v",
+  rel_heights = c(1, 1.5, 2.5) # adjust vertical space as needed
+)
+
+figure1
 ```
 ```{r}
-plot_week<- plot_bar(mdf_week, "Week")
-plot_week
+save_plot("figure1.pdf", figure1, 
+          base_width =10 , base_height = 15)
 ```
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Alpha Diversity Metrics
+read in alpha diversity dataframes 
+
+how did we make these? 
+alpha_diversity<- data.frame(estimate_richness(ps.cleaner, split=TRUE, measures=c("Shannon","InvSimpson","Observed")))
+alpha_diversity$Evenness <- alpha_diversity$Shannon / log(alpha_diversity$Observed)
+^did this for each experiment and saved dataframes to be uploaded below 
+ps.cleaner phyloseq object should not have transformed data (should use raw or minimally processed data for this)
+
+```{r}
+alpha.sum <- read.csv("alpha.div.sum.ch4.csv")
+alpha.field <-read.csv("alpha.div.field.ch4.csv")
+alpha.temp <- read.csv("alpha.div.temp.ch4.csv")
+```
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Lab dist (summer) alpha diversity stats
+
+ensuring factoral variables
+```{r}
+alpha.sum$Treatment   <- as.factor(alpha.sum$Treatment)
+alpha.sum$Temperature <- as.factor(alpha.sum$Temperature)
+alpha.sum$Week        <- as.factor(alpha.sum$Week)
+```
+
+Shannon
+```{r}
+#maximal model (anova)
+sumanov1 <- aov(Shannon ~ Treatment*Temperature*Week, data = alpha.sum)
+summary(sumanov1)
+
+#Assumption checks
+#1. Normality
+qqnorm(residuals(sumanov1))
+qqline(residuals(sumanov1), col = "red")
+shapiro_test <- shapiro.test(residuals(sumanov1))
+print(shapiro_test)
+#2. Homogeneity
+library(car)
+levene_test <- leveneTest(Shannon ~ Treatment*Temperature*Week, data = alpha.sum)
+print(levene_test)
+#3 linearity
+plot(sumanov1, which = 1)
+plot
+#4 independence (think about sample design)
+durbinWatsonTest(sumanov1)
+```
+- passes assumptions
+- stat sig between weeks 
+
+simple main effect & post hoc (week)
+```{r}
+sumanov1.2 <- aov(Shannon ~ Week, data = alpha.sum)
+summary(sumanov1.2)
+#posthoc test ~~ which weeks? 
+TukeyHSD(sumanov1.2, which = "Week")
+```
+```{r}
+#week plot for shannon div. in summer experiment
+library(ggpubr)
+library(ggplot2)
+
+# Create plot with custom colors
+shannon.sum <- ggplot(alpha.sum, aes(x = Week, y = Shannon, fill = Week)) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.7) +
+  geom_jitter(width = 0.2, alpha = 0.5, color = "black") +
+  scale_fill_manual(
+    values = c(
+      "1" = "tan4",
+      "3" = "orange",
+      "5" = "brown"
+    )
+  ) +
+  coord_cartesian(ylim = c(5, 7.5)) +
+  ylab("Shannon Diversity") +
+  xlab("Week") +
+  theme_classic(base_size = 14) +
+  theme(
+    axis.text = element_text(size = 14),
+    axis.title = element_text(size = 15),
+    legend.position = "none"
+  ) +
+  stat_compare_means(
+    comparisons = list(c("1", "5"), c("3", "5")), 
+    method = "t.test", 
+    label = "p.signif", 
+    label.y = c(7.3, 7.5)  # adjust y positions as needed
+  )
+
+shannon.sum
+
+# Save the plot
+# ggsave("shannon.summer.alpha.png", plot = shannon.sum, width = 6, height = 5, dpi = 300)
+
+```
+
+Richness
+```{r}
+#maximal model
+sumanov4 <- aov(Observed ~ Treatment*Temperature*Week, data = alpha.sum)
+summary(sumanov4)
+
+#Assumption checks
+#1. Normality
+qqnorm(residuals(sumanov4))
+qqline(residuals(sumanov4), col = "red")
+shapiro_test <- shapiro.test(residuals(sumanov4))
+print(shapiro_test)
+#2. Homogeneity
+library(car)
+levene_test <- leveneTest(Observed ~ Treatment*Temperature*Week, data = alpha.sum)
+print(levene_test)
+#3 linearity
+plot(sumanov4, which = 1)
+plot
+#4 independence (think about sample design)
+durbinWatsonTest(sumanov4)
+```
+untangle week:temp interaction here
+- since alpha diversity is univariate data (and not multivariate distances like beta diversity), when we see an interaction, we can use emmeans *requires a single numeric response* 
+- emmeans estimated marginal means, take fitted model (anova) and computes the mean response for each group, accounting for all other variables in the model 
+```{r}
+sumanovsimp <- aov(Observed ~  Temperature * Week, data = alpha.sum)
+library(emmeans)
+#estimated marginal means for the interaction
+em1 <- emmeans(sumanovsimp, ~ Week | Temperature)
+em2 <- emmeans(sumanovsimp, ~ Temperature | Week)
+pairs(em1) 
+pairs(em2) 
+```
+
+Interaction Plot:
+```{r}
+alpha.sum$Temperature <- factor(alpha.sum$Temperature, levels = c("22", "26"))
+interactionplot <- ggplot(alpha.sum, aes(x = Week, y = Observed, color = Temperature, group = Temperature)) +
+  stat_summary(fun = mean, geom = "line", linewidth = 1) +
+  stat_summary(fun = mean, geom = "point", size = 3) +
+  scale_color_manual(values = c("22" = "blue3", "26" = "red3")) +
+  theme_classic()
+interactionplot
+```
+Inv Simpson *same anova pipeline above except with inv simpson, no stat differences 
+Evenness **same anova pipeline above except with inv simpson, no stat differences
+
+Figure 2 - Lab dist alpha div
+```{r}
+library(cowplot)
+alpha.sum.com<- plot_grid( shannon.sum,interactionplot, 
+                           labels = c("A", "B"),  # optional subplot labels
+                           ncol = 1,               # number of columns
+                           align = "v")           # align horizontally & vertically
+
+# Display it
+alpha.sum.com
+
+```
+
+~~~~~~~~~~~~~~~~~~
+PAM 
+```{r}
+pam <- read.csv("PAM3.csv")
+```
+
+```{r}
+#filter by experiment
+sumpam <- pam[pam$Experiment == "Summer", ]
+fieldpam <- pam[pam$Experiment == "Field", ]
+temppam <- pam[pam$Experiment == "Temp", ]
+```
+~~~~~~~~~~~~~~~~~~~~
+Summer PAM
+-passed assumptions, no differences in pam between temperature or disturbance treatment
+```{r}
+#maximal model
+sumpam1 <- aov(pam ~ Treatment * Temperature, data = sumpam)
+summary(sumpam1)
+
+#checkassumptions
+#(1)normality
+qqnorm(residuals(sumpam1))
+qqline(residuals(sumpam1), col = "red")
+shapiro_test <- shapiro.test(residuals(sumpam1))
+print(shapiro_test)
+#(2)homogeneity
+sumpam$Week <- as.character(sumpam$Week)
+sumpam$Temperature <- as.character(sumpam$Temperature)
+levene_test <- leveneTest(pam ~ Treatment * Temperature, data = sumpam)
+print(levene_test)
+# (3) linearity~ Visual check: residuals vs fitted
+plot(fitted(sumpam1), residuals(sumpam1),
+     xlab = "Fitted values",
+     ylab = "Residuals",
+     main = "Residuals vs Fitted")
+abline(h = 0, col = "red")
+# Look for random scatter around zero
+
+```
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+FIELD RESULTS! 
 
