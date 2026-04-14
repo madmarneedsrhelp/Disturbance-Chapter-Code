@@ -1081,6 +1081,261 @@ abline(h = 0, col = "red")
 ```
 
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 FIELD RESULTS! 
 
+~Beta Dispersion
+```{r}
+field.bet.all <- betadisper(field.dist.all,field.samdf$Treatment)
+field.bet.all
+anova(field.bet.all)
+```
+*no stat difference in dispersion, what about beta diversity (differences in communities seen between treatment in situ)?
+
+~Beta Diversity
+```{r}
+adonis2(field.dist.all ~ Treatment , data=field.samdf, permutations=9999)
+pairwise.adonis2(field.dist.all ~ Treatment , data = field.samdf, permutations = 9999)
+```
+No differences seen between any of the treatments in the field experiment
+
+~Bar Plot
+calculates the total abundance of each Family across all samples, sorts them by the rel abundance, and converts them into percentages of the total 
+
+groups rare families into one group (<1% rel abundance) 
+groups taxa with "_" which means it was assigned at a higher taxonomy 
+```{r}
+# Aggregate total relative abundance per Family across all samples
+top_fam2 <- aggregate(Abundance ~ Family, data = mdffam.field, FUN = sum)
+
+# Sort in descending order
+top_fam2 <- top_fam2[order(-top_fam2$Abundance), ]
+
+# Calculate the total abundance
+total_abundance <- sum(top_fam2$Abundance)
+
+# Calculate percentage for each Family
+top_fam2$Percentage <- (top_fam2$Abundance / total_abundance) * 100
+
+# Group rare families (<1%) and those lacking family-level assignment
+top_fam2$Family_grouped <- ifelse(
+  grepl("_", top_fam2$Family),             # condition 1: contains "_"
+  "Assigned at higher taxonomy",           # assign this label
+  ifelse(
+    top_fam2$Percentage < 1,              # condition 2: <1% abundance
+    "Rare Families",                       # assign this label
+    top_fam2$Family                        # else keep original Family
+  )
+)
+
+# View the result
+print(top_fam2)
+```
+This is across all samples, now need to group by treatment and make a stacked bar plot
+created prep_bar_data() that:
+- Groups data by a chosen variable (Treatment) and Family
+- Sums abundances
+- Converts them into relative abundance (%) within each group
+
+Collapses rare structure using:
+"Assigned at higher taxonomy" (families with underscores)
+"Rare Families" (< 1%)
+Otherwise keeps original family name
+
+applied it to:
+mdf_treatment
+```{r}
+library(dplyr)
+
+# Function to prepare stacked bar plot data
+prep_bar_data2 <- function(df, group_var) {
+  
+  df %>%
+    group_by(.data[[group_var]], Family) %>%
+    summarise(Abundance_sum = sum(Abundance), .groups = "drop") %>%
+    
+    group_by(.data[[group_var]]) %>%
+    mutate(Percentage = Abundance_sum / sum(Abundance_sum) * 100) %>%
+    ungroup() %>%
+    
+    mutate(Family_grouped = case_when(
+      grepl("_", Family) ~ "Assigned at higher taxonomy",
+      Percentage < 1 ~ "Rare Families",
+      TRUE ~ Family
+    ))
+}
+
+# Apply to each factor
+mdf_treatment2   <- prep_bar_data2(mdffam.field, "Treatment")
+```
+
+making an "all families" vector
+```{r}
+all_families2 <- unique(c(
+  mdf_treatment2$Family_grouped))
+```
+
+looking at the different families to make a color pallette 
+```{r}
+unique(mdf_treatment2$Family_grouped)
+```
+creating a similar color pallette as used in the summer experiment: 
+```{r}
+palette_colors2 <- c(
+
+  # Alphaproteobacteria
+  "Rhodobacteraceae" = "#1f78b4",
+
+  # Gammaproteobacteria (incl. sulfur oxidizers)
+  "Halieaceae"       = "#41ae76",
+  "Woeseiaceae"      = "#238b45",
+  "Thiotrichaceae"   = "#74c476",  # sulfur oxidizers → lighter green
+  "Chromatiaceae"    = "#006d2c",  # purple sulfur bacteria → deep green
+
+  # Deltaproteobacteria (sulfate reducers)
+  "Desulfobacteraceae"  = "#00441b",
+  "Desulfocapsaceae"    = "#31a354",
+  "Desulfovibrionaceae" = "#74c476",
+  "Desulfobulbaceae"    = "#238b45",
+  "Desulfosarcinaceae"  = "#006d2c",
+
+  # Bacteroidetes
+  "Flavobacteriaceae"   = "#984ea3",
+  "Saprospiraceae"      = "#b07cc6",
+  "Cyclobacteriaceae"   = "#8c6bb1",
+  "Bacteroidetes BD2-2" = "#d4b9da",
+  "Prolixibacteraceae"  = "#c2a5cf",
+
+  # Planctomycetes / PVC
+  "Pirellulaceae"     = "#ff7f00",
+  "Puniceicoccaceae"  = "#e6550d",
+
+  # Firmicutes / thermophiles / anaerobes
+  "Thermoanaerobaculaceae" = "#ffd92f",
+
+  # Spirochaetes
+  "Spirochaetaceae" = "#a65628",
+
+  # Misc / environmental
+  "A4b" = "#6a3d9a",
+
+  # Special
+  "Rare Families"               = "grey70",
+  "Assigned at higher taxonomy" = "darkblue",
+  "Unknown Family"              = "black"
+)
+```
+
+ensuring this worked, should say zero 
+```{r}
+setdiff(all_families2, names(palette_colors2))
+```
+
+
+```{r}
+#Ordering treatment x axis
+mdf_treatment2$Treatment <- factor(
+  mdf_treatment2$Treatment,
+  levels = c("ND", "Few Small", "Many Small", "HD")
+)
+```
+
+```{r}
+#  Alphabetical order (forced all plots to have the same stacking order/ color pallette)
+family_levels2 <- sort(names(palette_colors2))
+
+# Apply to all datasets
+mdf_treatment2$Family_grouped   <- factor(mdf_treatment2$Family_grouped, levels = family_levels2)
+```
+
+
+```{r}
+# Plotting function ~ making the stacked bar plots using relative abundance
+plot_bar <- function(df, xvar) {
+  ggplot(df, aes(x = .data[[xvar]], y = Percentage, fill = Family_grouped)) +
+    geom_bar(stat = "identity") +
+    scale_fill_manual(
+      values = palette_colors2,
+      drop = FALSE
+    ) +
+    labs(
+      x = xvar,
+      y = "Relative Abundance (%)",
+      fill = "Family"
+    ) +
+    theme_minimal(base_size = 16) +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      legend.text = element_text(size = 9),
+      legend.title = element_text(size = 11)
+    )
+}
+```
+
+
+```{r}
+#actual plotting
+plot_treatment2   <- plot_bar(mdf_treatment2, "Treatment")
+plot_treatment2
+```
+field.treat.ord
+plot_treatment2
+
+combo field plot
+```{r}
+#FINAL COMBO FIELD PLOT
+library(cowplot)
+
+# Stack the two plots vertically with labels
+combo_field <- plot_grid(
+  field.treat.ord,
+  plot_treatment2,
+  nrow = 2,          # vertical layout
+  align = "v",       # align plots vertically
+  label_fontface = "bold",   # bold labels
+  label_x = 0.02,            # left-align labels
+  label_y = 0.98             # position near top
+)
+
+combo_field
+```
+
+```{r}
+save_plot("finalfieldplot.pdf", combo_field, 
+          base_width =8 , base_height = 8)
+```
+
+~Diff Abundance Results
+
+```{r}
+field.diff.abund <- ancombc2(
+  data = ps.field.raw,
+  tax_level = "Family",
+  fix_formula = "Treatment",
+  p_adj_method = "holm",
+  group = "Treatment",    # factor you are testing
+  struc_zero = TRUE,        # detects structural zeros (presence/absence)
+  neg_lb = TRUE,
+  em_control = list(
+    tol = 1e-5,
+    max_iter = 100,
+    sensitivity = TRUE      # runs subsampling stability check
+  ),
+  alpha = 0.05,
+  global = TRUE             # adds global tests in addition to pairwise
+)
+```
+
+```{r}
+#structural zero results (need to clean up in excel)
+View(field.diff.abund$zero_ind)
+#write.csv(field.diff.abund$zero_ind, "field_strzeros.csv", row.names = TRUE)
+#sensitivity results (scores are low, this is why we negate global and pairwise results and focus on the robust structural zero results above)
+View(field.diff.abund$pseudo_sens_tab)
+#write.csv(field.diff.abund$pseudo_sens_tab, "field_sens.csv", row.names = TRUE)
+```
+
+~Alpha Diversity Models
+alpha.field
+
+~PAM
