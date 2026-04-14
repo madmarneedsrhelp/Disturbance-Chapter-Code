@@ -336,6 +336,9 @@ LAB (SUMMER) RESULTS!
 Beta Diversity & Comm Comp Stats
 ~ full permanova model
 ```{r}
+sum.samdf$Temperature <- as.factor(sum.samdf$Temperature)
+sum.samdf$Week <- as.factor(sum.samdf$Week)
+sum.samdf$Treatment <- as.factor(sum.samdf$Treatment)
 adonis2(sum.dist.all ~ Treatment * Temperature *Week , data=sum.samdf, permutations=9999)
 ```
 Treatment                   4    90414 0.08753 1.7698 0.0001 ***
@@ -486,6 +489,7 @@ sum.intplot2
 
 week alone (simple main effect)
 ```{r}
+sum.samdf$Week <- as.factor(sum.samdf$Week)
 adonis2(sum.dist.all ~ Week , data=sum.samdf, permutations=9999)
 pairwise.adonis2(sum.dist.all ~ Week , data = sum.samdf, permutations = 9999)
 ```
@@ -1094,6 +1098,7 @@ anova(field.bet.all)
 
 ~Beta Diversity
 ```{r}
+field.samdf$Treatment <- as.factor(field.samdf$Treatment)
 adonis2(field.dist.all ~ Treatment , data=field.samdf, permutations=9999)
 pairwise.adonis2(field.dist.all ~ Treatment , data = field.samdf, permutations = 9999)
 ```
@@ -1337,5 +1342,243 @@ View(field.diff.abund$pseudo_sens_tab)
 
 ~Alpha Diversity Models
 alpha.field
+Shannon, inv simpson, evenness, richness
+
+*did this for all alpha div metrics (above), all models passed assumptions, no stat sig results seen 
+```{r}
+alpha.field$Treatment   <- as.character(alpha.field$Treatment)
+
+#maximal model
+fieldanov1 <- aov(Shannon ~ Treatment, data = alpha.field)
+summary(fieldanov1)
+
+#Assumption checks
+#1. Normality
+qqnorm(residuals(fieldanov1))
+qqline(residuals(fieldanov1), col = "red")
+shapiro_test <- shapiro.test(residuals(fieldanov1))
+print(shapiro_test)
+#2. Homogeneity
+library(car)
+levene_test <- leveneTest(Shannon ~ Treatment, data = alpha.field)
+print(levene_test)
+#3 linearity
+plot(fieldanov1, which = 1)
+plot
+#4 independence (think about sample design)
+durbinWatsonTest(fieldanov1)
+```
 
 ~PAM
+Field PAM, just a baseline, looked at internal vs external samples (no between treatments)
+~no differences seen
+```{r}
+
+fieldpam$Treatment <- as.character(fieldpam$Treatment)
+fieldpam_model <- aov(pam ~ Treatment, data = fieldpam)
+summary(fieldpam_model)
+
+#checkassumptions
+#(1)normality
+qqnorm(residuals(fieldpam_model))
+qqline(residuals(fieldpam_model), col = "red")
+shapiro_test <- shapiro.test(residuals(fieldpam_model))
+print(shapiro_test)
+#(2)homogeneity
+levene_test <- leveneTest(pam ~ Treatment, data = fieldpam)
+print(levene_test)
+```
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Temperature Experiment
+
+~Beta dispersion
+```{r}
+#temp
+temp.bet.all1 <- betadisper(temp.dist.all,temp.samdf$Temperature)
+anova(temp.bet.all1)
+```
+*no differences in dispersion between temperatures
+
+
+```{r}
+#week
+temp.bet.all2 <- betadisper(temp.dist.all,temp.samdf$Week)
+anova(temp.bet.all2)
+TukeyHSD(temp.bet.all2)
+```
+*differences between weeks (3 vs 1 and 5 vs 1) ~ keep this in mind for beta diveristy results
+
+~ Beta Diveristy
+
+full model! 
+  *including weeks
+```{r}
+temp.samdf$Temperature <- as.factor(temp.samdf$Temperature)
+temp.samdf$Week <- as.factor(temp.samdf$Week)
+#temp.dist.all <- vegdist(temp.seqtab, method = "euclidean")
+adonis2(temp.dist.all ~ Temperature*Week , data=temp.samdf, permutations=9999)
+```
+~Tease apart interaction
+
+in which weeks to temps differ? 
+```{r}
+# Get unique week levels
+weeks <- unique(temp.samdf$Week)
+
+# Loop over each week to test for temperature effect
+for (w in weeks) {
+  
+  cat("\n--- PERMANOVA: Temperature differences within Week =", w, "---\n")
+  
+  # Logical index for samples matching the current week
+  week_idx <- temp.samdf$Week == w
+  
+  # Subset distance matrix and metadata
+  dist_subset <- as.dist(as.matrix(temp.dist.all)[week_idx, week_idx])
+  meta_subset <- temp.samdf[week_idx, ]
+  
+  # Check if at least 2 temperature levels are present
+  if (length(unique(meta_subset$Temperature)) > 1) {
+    # Run PERMANOVA
+    result <- adonis2(dist_subset ~ Temperature, data = meta_subset, permutations = 9999)
+    print(result)
+  } else {
+    cat("Not enough temperature levels to compare for this week.\n")
+  }
+}
+
+```
+Temperatures differ in weeks 1, 3, and 5!
+
+at which temps do week differ? 
+```{r}
+# Get unique temperature levels
+temps <- unique(temp.samdf$Temperature)
+
+# Loop over each temperature to test for week effect
+for (temp in temps) {
+  
+  cat("\n--- PERMANOVA: Week differences within Temperature =", temp, "---\n")
+  
+  # Logical index for samples matching the current temperature
+  temp_idx <- temp.samdf$Temperature == temp
+  
+  # Subset distance matrix and metadata
+  dist_subset <- as.dist(as.matrix(temp.dist.all)[temp_idx, temp_idx])
+  meta_subset <- temp.samdf[temp_idx, ]
+  
+  # Check if at least 2 week levels are present
+  if (length(unique(meta_subset$Week)) > 1) {
+    # Run PERMANOVA
+    result <- adonis2(dist_subset ~ Week, data = meta_subset, permutations = 9999)
+    print(result)
+  } else {
+    cat("Not enough week levels to compare for this temperature.\n")
+  }
+}
+```
+Yup, weeks differ at all temperature treatments as well
+*pairwise tests cannot be completed, sample size too small, so let's look at trends with interaction plots! 
+
+~interaction plots 
+```{r}
+ordination_df <- read.csv("ordination_df.csv")
+```
+
+```{r}
+#FINAL interaction plot 1 for temperature 
+p.2 = ggplot(ordination_df, aes(x = as.factor(Week), y = PCoA1, color = as.factor(Temperature), group = Temperature)) +
+  stat_summary(fun = mean, geom = "line", size = 1.2) +
+  stat_summary(fun = mean, geom = "point", size = 3) +
+  scale_color_manual(
+    values = c(
+      "26" = "blue3",
+      "29" = "darkgreen",
+      "31" = "magenta4",
+      "33" = "red3"
+    )
+  ) +
+  labs(
+    title = "",
+    x = "Week",
+    y = "PCoA Axis 1 score",
+    color = "Temperature"
+  ) +
+  theme_minimal()+
+  theme(
+    axis.title = element_text(size = 16),  # axis titles
+    axis.text = element_text(size = 14),                  # axis tick labels
+    legend.text = element_text(size = 14),                # legend labels
+    legend.title = element_text(size = 16)                # legend title
+  )
+p.2
+#ggsave("interaction.beta,div.pdf", plot = p.2, width = 8, height = 6, units = "in", dpi = 300)
+```
+
+```{r}
+#FINAL interaction plot 2 for temperature 
+
+p.2.5 = ggplot(ordination_df, aes(x = as.factor(Temperature), y = PCoA1, color = as.factor(Week), group = Week)) +
+  stat_summary(fun = mean, geom = "line", size = 1.2) +
+  stat_summary(fun = mean, geom = "point", size = 3) +
+  scale_color_manual(
+    values = c(
+      "1" = "tan4",
+      "3" = "orange",
+      "5" = "brown"
+    )
+  ) +
+  labs(
+    title = "",
+    x = "Temperature",
+    y = "PCoA Axis 1 score",
+    color = "Week"
+  ) +
+ theme_minimal()+
+  theme(
+    axis.title = element_text(size = 16),  # axis titles
+    axis.text = element_text(size = 14),                  # axis tick labels
+    legend.text = element_text(size = 14),                # legend labels
+    legend.title = element_text(size = 16)                # legend title
+  )
+
+p.2.5
+
+```
+~ Reduced temperature model & pairwise results (supports interaction plot results)
+```{r}
+adonis2(temp.dist.all ~ Temperature , data = temp.samdf, permutations = 9999)
+pairwise.adonis2(temp.dist.all ~ Temperature , data = temp.samdf, permutations = 9999)
+```
+~Bar plots 
+
+calculates the total abundance of each Family across all samples, sorts them by the rel abundance, and converts them into percentages of the total 
+
+groups rare families into one group (<1% rel abundance) 
+groups taxa with "_" which means it was assigned at a higher taxonomy 
+```{r}
+# Aggregate total relative abundance per Family across all samples
+top_fam2 <- aggregate(Abundance ~ Family, data = mdffam.field, FUN = sum)
+
+# Sort in descending order
+top_fam2 <- top_fam2[order(-top_fam2$Abundance), ]
+
+# Calculate the total abundance
+total_abundance <- sum(top_fam2$Abundance)
+
+# Calculate percentage for each Family
+top_fam2$Percentage <- (top_fam2$Abundance / total_abundance) * 100
+
+# Group rare families (<1%) and those lacking family-level assignment
+top_fam2$Family_grouped <- ifelse(
+  grepl("_", top_fam2$Family),             # condition 1: contains "_"
+  "Assigned at higher taxonomy",           # assign this label
+  ifelse(
+    top_fam2$Percentage < 1,              # condition 2: <1% abundance
+    "Rare Families",                       # assign this label
+    top_fam2$Family                        # else keep original Family
+  )
+)
+
+# View the result
+print(top_fam2)
+```
