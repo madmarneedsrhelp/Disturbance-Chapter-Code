@@ -208,8 +208,9 @@ sample_data(ps.temp)$Temperature <- factor(sample_data(ps.temp)$Temperature, lev
 
 # Ordination
 ord <- ordinate(ps.temp, method = "PCoA", distance = "euclidean")
+```
 
-# Plot
+```{r}
 temp.temp.week.ord <- plot_ordination(ps.temp, ord) +
   geom_point(
     aes(color = Temperature, shape = Week),
@@ -217,19 +218,25 @@ temp.temp.week.ord <- plot_ordination(ps.temp, ord) +
     alpha = 0.8
   ) +
   stat_ellipse(
-    aes(group = Week, color = Week),  # Ellipse by Week
+    aes(group = Week, color = Week),
     linetype = "dashed",
-    size = 1
+    linewidth = 1
   ) +
   scale_color_manual(
+    name = "Temperature",
     values = c(
-      "26" = "blue3", "29" = "darkgreen", "31" = "magenta4", "33" = "red3",
-      "1" = "tan4", "3" = "orange", "5" = "brown"  # for Week ellipses
+      "26" = "blue3",
+      "29" = "darkgreen",
+      "31" = "magenta4",
+      "33" = "red3",
+      "1"  = "tan4",
+      "3"  = "orange",
+      "5"  = "brown"
     )
   ) +
   guides(
-    shape = guide_legend(override.aes = list(color = "black")), # Week shapes
-    color = guide_legend(override.aes = list(shape = 16))        # Temp colors
+    shape = guide_legend(override.aes = list(color = "black")),
+    color = guide_legend(override.aes = list(shape = 16))
   ) +
   theme_classic(base_size = 22) +
   theme(
@@ -238,10 +245,11 @@ temp.temp.week.ord <- plot_ordination(ps.temp, ord) +
     legend.text = element_text(size = 18),
     legend.title = element_text(size = 18)
   )
-
 temp.temp.week.ord
-#good enough, will edit key later
 ```
+
+
+
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Set up for Beta Dispersion ~ ALL EXPERIMENTS
 
@@ -701,12 +709,12 @@ legend <- get_legend(
   plot_treatment +
     theme(
       legend.position = "bottom",
-      legend.text = element_text(size = 8),
-      legend.key.size = unit(0.3, "cm"),
+      legend.text = element_text(size = 9),
+      legend.key.size = unit(0.4, "cm"),
       legend.spacing.y = unit(0.05, "cm"),
       legend.spacing.x = unit(0.05, "cm")
     ) +
-    guides(fill = guide_legend(nrow = 5))
+    guides(fill = guide_legend(nrow = 4))
 )
 
 #  Remove legends from plots
@@ -882,8 +890,8 @@ figure1 <- plot_grid(
 figure1
 ```
 ```{r}
-save_plot("figure1.pdf", figure1, 
-          base_width =10 , base_height = 15)
+save_plot("figure1.2.pdf", figure1, 
+          base_width =10 , base_height = 20)
 ```
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1042,7 +1050,10 @@ alpha.sum.com<- plot_grid( shannon.sum,interactionplot,
 alpha.sum.com
 
 ```
-
+```{r}
+save_plot("alpha.sum.com.pdf", alpha.sum.com, 
+          base_width =8 , base_height = 8)
+```
 ~~~~~~~~~~~~~~~~~~
 PAM 
 ```{r}
@@ -1173,6 +1184,7 @@ prep_bar_data2 <- function(df, group_var) {
 # Apply to each factor
 mdf_treatment2   <- prep_bar_data2(mdffam.field, "Treatment")
 ```
+
 
 making an "all families" vector
 ```{r}
@@ -1557,28 +1569,444 @@ groups rare families into one group (<1% rel abundance)
 groups taxa with "_" which means it was assigned at a higher taxonomy 
 ```{r}
 # Aggregate total relative abundance per Family across all samples
-top_fam2 <- aggregate(Abundance ~ Family, data = mdffam.field, FUN = sum)
+top_fam3 <- aggregate(Abundance ~ Family, data = mdffam.temp, FUN = sum)
 
 # Sort in descending order
-top_fam2 <- top_fam2[order(-top_fam2$Abundance), ]
+top_fam3 <- top_fam3[order(-top_fam3$Abundance), ]
 
 # Calculate the total abundance
-total_abundance <- sum(top_fam2$Abundance)
+total_abundance <- sum(top_fam3$Abundance)
 
 # Calculate percentage for each Family
-top_fam2$Percentage <- (top_fam2$Abundance / total_abundance) * 100
+top_fam3$Percentage <- (top_fam3$Abundance / total_abundance) * 100
 
 # Group rare families (<1%) and those lacking family-level assignment
-top_fam2$Family_grouped <- ifelse(
-  grepl("_", top_fam2$Family),             # condition 1: contains "_"
+top_fam3$Family_grouped <- ifelse(
+  grepl("_", top_fam3$Family),             # condition 1: contains "_"
   "Assigned at higher taxonomy",           # assign this label
   ifelse(
-    top_fam2$Percentage < 1,              # condition 2: <1% abundance
+    top_fam3$Percentage < 1,              # condition 2: <1% abundance
     "Rare Families",                       # assign this label
-    top_fam2$Family                        # else keep original Family
+    top_fam3$Family                        # else keep original Family
   )
 )
-
 # View the result
-print(top_fam2)
+print(top_fam3)
 ```
+*Making rel abundance for each group!
+created prep_bar_data() that:
+- Groups data by a chosen variable ( Temperature / Week) and Family
+- Sums abundances
+- Converts them into relative abundance (%) within each group
+
+Collapses rare structure using:
+"Assigned at higher taxonomy" (families with underscores)
+"Rare Families" (< 1%)
+Otherwise keeps original family name
+
+applied it to:
+mdf_temperature2
+mdf_week2
+```{r}
+library(dplyr)
+
+# Function to prepare stacked bar plot data
+prep_bar_data <- function(df, group_var) {
+  
+  df %>%
+    group_by(.data[[group_var]], Family) %>%
+    summarise(Abundance_sum = sum(Abundance), .groups = "drop") %>%
+    
+    group_by(.data[[group_var]]) %>%
+    mutate(Percentage = Abundance_sum / sum(Abundance_sum) * 100) %>%
+    ungroup() %>%
+    
+    mutate(Family_grouped = case_when(
+      grepl("_", Family) ~ "Assigned at higher taxonomy",
+      Percentage < 1 ~ "Rare Families",
+      TRUE ~ Family
+    ))
+}
+
+# Apply to each factor
+mdf_temperature2 <- prep_bar_data(mdffam.temp, "Temperature")
+mdf_week2        <- prep_bar_data(mdffam.temp, "Week")
+```
+
+```{r}
+mdf_temperature2
+mdf_week2
+```
+
+making an "all families" vector
+```{r}
+all_families3 <- unique(c(
+  mdf_temperature2$Family_grouped,
+  mdf_week2$Family_grouped
+))
+```
+
+
+
+looking at the different families to make a color pallette 
+```{r}
+unique(mdf_temperature2$Family_grouped)
+```
+
+
+```{r}
+unique(mdf_week2$Family_grouped)
+```
+```{r}
+palette_colors3 <- c(
+
+  # Alphaproteobacteria (blues)
+  "Rhodobacteraceae" = "#1f78b4",
+  "Sphingomonadaceae"= "#74a9cf",
+
+  # Gammaproteobacteria (greens)
+  "Alteromonadaceae" = "#33a02c",
+  "Halieaceae"       = "#41ae76",
+  "Woeseiaceae"      = "#238b45",
+  "Arcobacteraceae"  = "#7fc97f",
+  "Vibrionaceae"     = "#2ca25f",
+
+  # Deltaproteobacteria (sulfate reducers; dark greens)
+  "Desulfobacteraceae"   = "#006d2c",
+  "Desulfocapsaceae"     = "#31a354",
+  "Desulfovibrionaceae"  = "#74c476",
+  "Desulfosarcinaceae"   = "#00441b",
+  "Desulfobulbaceae"     = "#41ab5d",
+
+  # Bacteroidetes (purples)
+  "Flavobacteriaceae" = "#984ea3",
+  "Saprospiraceae"    = "#b07cc6",
+  "Cryomorphaceae"    = "#c2a5cf",
+  "Cyclobacteriaceae" = "#8c6bb1",
+  "Bacteroidetes BD2-2" = "#d4b9da",
+
+  # Planctomycetes / PVC (oranges)
+  "Pirellulaceae"     = "#ff7f00",
+  "Phycisphaeraceae"  = "#fdae6b",
+  "Puniceicoccaceae"  = "#e6550d",
+  "Rubinisphaeraceae" = "#fd8d3c",
+  "SB-5"              = "#fdd0a2",
+
+  # Cyanobacteria (reds)
+  "Coleofasciculaceae" = "#e41a1c",
+  "Phormidiaceae"      = "#fc9272",
+
+  # Firmicutes / anaerobes (yellows)
+  "Fusibacteraceae"        = "#ffe34d",
+
+  # Spirochaetes (brown)
+  "Spirochaetaceae" = "#a65628",
+
+  # Misc / environmental
+  "A4b"                      = "#6a3d9a",
+  
+  # Special
+  "Rare Families"                = "grey70",
+  "Assigned at higher taxonomy"  = "darkblue",
+  "Unknown Family"               = "black"
+)
+```
+
+ensuring this worked, should say zero 
+```{r}
+setdiff(all_families3, names(palette_colors3))
+```
+
+
+getting things set up for the plots
+```{r}
+#  Alphabetical order (forced all plots to have the same stacking order/ color pallette)
+family_levels3 <- sort(names(palette_colors3))
+
+# Apply to all datasets
+mdf_temperature2$Family_grouped   <- factor(mdf_temperature2$Family_grouped, levels = family_levels3)
+mdf_week2$Family_grouped   <- factor(mdf_week2$Family_grouped, levels = family_levels3)
+
+setdiff(unique(c(mdf_temperature2$Family_grouped,
+                 mdf_week2$Family_grouped)),
+        names(palette_colors3))
+```
+
+
+
+cleaned up plotting code:
+```{r}
+# Ensure correct x-axis types
+mdf_temperature2$Temperature <- factor(
+  mdf_temperature2$Temperature,
+  levels = c(26, 29, 31, 33)
+)
+
+mdf_week2$Week <- factor(mdf_week2$Week)
+
+
+# Plotting function
+plot_bar <- function(df, xvar) {
+  ggplot(df, aes(x = .data[[xvar]], y = Percentage, fill = Family_grouped)) +
+    geom_bar(stat = "identity") +
+    scale_fill_manual(
+      values = palette_colors3,
+      drop = TRUE
+    ) +
+    labs(
+      x = xvar,
+      y = "Relative Abundance (%)",
+      fill = "Family"
+    ) +
+    theme_minimal(base_size = 16) +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      legend.text = element_text(size = 9),
+      legend.title = element_text(size = 11)
+    )
+}
+```
+
+
+```{r}
+# Build plots
+plot_temperature2 <- plot_bar(mdf_temperature2, "Temperature")
+plot_week2        <- plot_bar(mdf_week2, "Week")
+
+# Extract legend (from one plot only)
+legend2 <- get_legend(
+  plot_week2 +
+    theme(
+      legend.position = "bottom",
+      legend.text = element_text(size = 9),
+      legend.key.size = unit(0.4, "cm"),
+      legend.spacing.x = unit(0.05, "cm")
+    ) +
+    guides(fill = guide_legend(nrow = 5))
+)
+# Remove legends from plots
+plot_temperature_noleg2 <- plot_temperature2 + theme(legend.position = "none")
+plot_week_noleg2        <- plot_week2 + theme(legend.position = "none")
+
+# Combine plots + legend
+top_row2 <- plot_grid(
+  plot_temperature_noleg2,
+  plot_week_noleg2,
+  ncol = 2,
+  rel_widths = c(1, 1)
+)
+
+tempbot <- plot_grid(
+  top_row2,
+  legend2,
+  ncol = 1,
+  rel_heights = c(0.8, 0.2)
+)
+
+tempbot
+```
+
+
+```{r}
+ggsave(
+  filename = "tempstacked.pdf",
+  plot = tempbot,
+  width = 10,
+  height = 6,
+  dpi = 300
+)
+```
+
+```{r}
+tempmid <- plot_grid(
+ p.2,
+ p.2.5,
+  ncol = 2,
+  rel_heights = c(.8, 1)
+)
+
+tempmid
+```
+
+p2, p2.5
+
+
+```{r}
+#combined temp plot ~ Will clean up in pdf/adobe
+library(cowplot)
+
+# Make top plot narrower
+pA_narrow2 <- ggdraw() + 
+  draw_plot(temp.temp.week.ord, x = 0.5, y = 0.5, width = 0.7, hjust = 0.5, vjust = 0.5)
+
+# Stack vertically
+tempfigure <- plot_grid(
+  pA_narrow2,        # narrow top plot
+  tempmid,     # middle plot (full width)
+  tempbot,  # bottom plot (full width)
+  ncol = 1,
+  align = "v",
+  rel_heights = c(1, 1.5, 2.5) # adjust vertical space as needed
+)
+tempfigure
+```
+
+```{r}
+save_plot("tempfigure.pdf", tempfigure, 
+          base_width =10 , base_height = 20)
+```
+
+~ Alpha Diversity 
+```{r}
+alpha.temp$Temperature   <- as.character(alpha.temp$Temperature)
+alpha.temp$Week   <- as.character(alpha.temp$Week)
+
+#maximal model
+tempanov1 <- aov(InvSimpson ~ Temperature*Week, data = alpha.temp)
+summary(tempanov1)
+
+#Assumption checks
+#1. Normality
+qqnorm(residuals(tempanov1))
+qqline(residuals(tempanov1), col = "red")
+shapiro_test <- shapiro.test(residuals(tempanov1))
+print(shapiro_test)
+#2. Homogeneity
+library(car)
+levene_test <- leveneTest(Shannon ~ Temperature*Week, data = alpha.temp)
+print(levene_test)
+#3 linearity
+plot(tempanov1, which = 1)
+plot
+#4 independence (think about sample design)
+durbinWatsonTest(tempanov1)
+```
+Interaction plot:alpha! 
+```{r}
+alpha.temp$Temperature <- factor(
+  alpha.temp$Temperature,
+  levels = c("26", "29", "31", "33")
+)
+
+alphainteraction1 = interaction.plot(
+  x.factor = alpha.temp$Week,
+  trace.factor = alpha.temp$Temperature,
+  response = alpha.temp$InvSimpson,
+  fun = mean,
+  type = "b",
+  legend = TRUE,
+  ylab = "Inv Simpson",
+  xlab = "Week",
+  trace.label = "Temperature",
+  col = c("blue3", "darkgreen", "magenta4", "red3"),
+  pch = 16,
+  lty = 1,
+  lwd = 2
+)
+```
+```{r}
+alphainteraction2 = interaction.plot(
+  x.factor = alpha.temp$Temperature,
+  trace.factor = alpha.temp$Week,
+  response = alpha.temp$InvSimpson,
+  fun = mean,
+  type = "b",
+  legend = TRUE,
+  ylab = "Inv Simpson",
+  xlab = "Temperature",
+  trace.label = "Week",
+  col = c( "1" = "tan4",
+      "3" = "orange",
+      "5" = "brown"),
+  pch = 16,
+  lty = 1,
+  lwd = 2
+)
+```
+
+emmeans stats
+~week effects within each temp and temp affects within each week ^ which of the above are sig?
+```{r}
+em3 <- emmeans(tempanov1, ~ Week | Temperature)
+em4 <- emmeans(tempanov1, ~ Temperature | Week)
+#pairwisecomparisons
+pairs(em3)
+pairs(em4)
+```
+
+```{r}
+#FINAL TEMP INV SIMPSON TEMP INTERACTION PLOT
+library(ggplot2)
+library(dplyr)
+
+# summarize InvSimpson means by Week and Temperature
+interaction_df <- alpha.temp %>%
+  group_by(Week, Temperature) %>%
+  summarise(InvSimpson_mean = mean(InvSimpson, na.rm = TRUE), .groups = "drop")
+
+# make sure factors are ordered properly
+interaction_df$Week <- factor(interaction_df$Week, levels = c("1", "3", "5"))
+interaction_df$Temperature <- factor(interaction_df$Temperature, levels = c("26", "29", "31", "33"))
+
+# create ggplot version
+interactionplot2 <- ggplot(interaction_df, aes(x = Week, y = InvSimpson_mean, 
+                                               color = Temperature, group = Temperature)) +
+  geom_line(size = 1.2) +
+  geom_point(size = 3) +
+  scale_color_manual(values = c("blue3", "darkgreen", "magenta4", "red3")) +
+  theme_classic(base_size = 12) +
+  labs(x = "Week", y = "Inv Simpson", color = "Temperature") +
+  theme(
+    legend.position = "right",
+    axis.text.x = element_text(size = 14, color = "black"),
+    axis.text.y = element_text(size = 14, color = "black"),
+    axis.title.x = element_text(size = 16),
+    axis.title.y = element_text(size = 16),
+    legend.title = element_text(size = 14),
+    legend.text = element_text(size = 10)
+  )
+
+interactionplot2
+```
+
+
+```{r}
+# create ggplot version
+interactionplot1 <- ggplot(interaction_df, aes(x = Temperature, y = InvSimpson_mean, 
+                                               color = Week, group = Week)) +
+  geom_line(size = 1.2) +
+  geom_point(size = 3) +
+  scale_color_manual(values = c("tan4", "orange", "brown")) +
+  theme_classic(base_size = 12) +
+  labs(x = "Temperature", y = "Inv Simpson", color = "Week") +
+  theme(
+    legend.position = "right",
+    axis.text.x = element_text(size = 14, color = "black"),
+    axis.text.y = element_text(size = 14, color = "black"),
+    axis.title.x = element_text(size = 16),
+    axis.title.y = element_text(size = 16),
+    legend.title = element_text(size = 14),
+    legend.text = element_text(size = 10)
+  )
+
+interactionplot1
+
+```
+```{r}
+interactionplot1 <- interactionplot1 + theme(plot.margin = margin(5,5,5,5))
+interactionplot2 <- interactionplot2 + theme(plot.margin = margin(5,5,5,5))
+alphaint <- plot_grid(
+  interactionplot2,
+  interactionplot1,
+  ncol = 1,
+  align = "v",
+  axis = "l"
+)
+alphaint
+```
+```{r}
+save_plot("alphaint.pdf", alphaint, 
+          base_width =8 , base_height = 8)
+```
+
+~ PAM & Nutrient Stats
