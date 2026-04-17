@@ -1035,6 +1035,54 @@ interactionplot <- ggplot(alpha.sum, aes(x = Week, y = Observed, color = Tempera
   theme_classic()
 interactionplot
 ```
+
+
+
+```{r}
+#updatedinteractionplot
+alpha.sum$Temperature <- factor(alpha.sum$Temperature, levels = c("22", "26"))
+alpha.sum$Week <- factor(alpha.sum$Week)
+
+interactionplot <- ggplot(alpha.sum,
+                          aes(x = Week,
+                              y = Observed,
+                              color = Temperature,
+                              group = Temperature)) +
+
+  stat_summary(fun = mean, geom = "line", linewidth = 1) +
+  stat_summary(fun = mean, geom = "point", size = 3) +
+
+  scale_color_manual(values = c("22" = "blue3", "26" = "red3")) +
+
+  labs(y = "Richness", x = "Week") +   # <-- fixes label
+
+  theme_classic(base_size = 14) +      # match Shannon plot base size
+
+  theme(
+    axis.text = element_text(size = 14),
+    axis.title = element_text(size = 15),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 13)
+  )
+
+interactionplot
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Inv Simpson *same anova pipeline above except with inv simpson, no stat differences 
 Evenness **same anova pipeline above except with inv simpson, no stat differences
 
@@ -1858,8 +1906,8 @@ save_plot("tempfigure.pdf", tempfigure,
 
 ~ Alpha Diversity 
 ```{r}
-alpha.temp$Temperature   <- as.character(alpha.temp$Temperature)
-alpha.temp$Week   <- as.character(alpha.temp$Week)
+alpha.temp$Temperature   <- as.factor(alpha.temp$Temperature)
+alpha.temp$Week   <- as.factor(alpha.temp$Week)
 
 #maximal model
 tempanov1 <- aov(InvSimpson ~ Temperature*Week, data = alpha.temp)
@@ -2010,3 +2058,301 @@ save_plot("alphaint.pdf", alphaint,
 ```
 
 ~ PAM & Nutrient Stats
+
+predictor variable: temp (factor)
+response variable: PAM reading (numerical) 
+```{r}
+temppam$Temperature <- as.factor(temppam$Temperature)
+temppam1 <- aov(pam ~ Temperature*Week, data = temppam)
+summary(temppam1)
+
+#Assumption checks
+#1. Normality
+qqnorm(residuals(temppam1))
+qqline(residuals(temppam1), col = "red")
+shapiro_test <- shapiro.test(residuals(temppam1))
+print(shapiro_test)
+#2. Homogeneity
+library(car)
+temppam$Temperature <- as.character(temppam$Temperature)
+temppam$Week <- as.character(temppam$Week)
+levene_test <- leveneTest(pam ~ Temperature*Week, data = temppam)
+print(levene_test)
+#3 linearity
+plot(temppam1, which = 1)
+plot
+#4 independence (think about sample design)
+durbinWatsonTest(temppam1)
+
+```
+
+Does not pass assumptions!!! 
+
+KW & post hoc dunn's test below v
+
+```{r}
+kruskal.test(pam ~ Temperature, data = temppam)
+kruskal.test(pam ~ Week, data = temppam)
+```
+```{r}
+library(dunn.test)
+dunn.test(temppam$pam, temppam$Temperature, method = "bh")
+```
+temp pam plot
+```{r}
+library(ggsignif)
+
+temppamplot <- ggplot(temppam, aes(x = Temperature, y = pam, fill = Temperature)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_jitter(width = 0.15, alpha = 0.7, size = 2) +
+  scale_fill_manual(values = c(
+    "26" = "blue",
+    "29" = "darkgreen",
+    "31" = "magenta",
+    "33" = "red"
+  )) +
+  theme_minimal() +
+  labs(x = "Temperature", y = "Y(II)") +
+  geom_signif(comparisons = list(c("26", "33")),
+              annotations = "*",
+              y_position = 0.85,
+              tip_length = 0.02)
+
+temppamplot
+```
+~ Nutrients
+```{r}
+tempnutsdiff <- read.csv("TEMPNUTSDIFF.csv")
+```
+
+```{r}
+str(tempnutsdiff)
+```
+TOM first
+```{r}
+tempnutsdiff$Temperature <- as.factor(tempnutsdiff$Temperature)
+tom1 <- aov(W5.W1...OM. ~ Temperature, data = tempnutsdiff)
+summary(tom1)
+
+#assumption check
+#1. Normality
+qqnorm(residuals(tom1))
+qqline(residuals(tom1), col = "red")
+shapiro_test <- shapiro.test(residuals(tom1))
+print(shapiro_test)
+#2. Homogeneity
+library(car)
+tempnutsdiff$Temperature <- as.character(tempnutsdiff$Temperature)
+levene_test <- leveneTest(W5.W1...OM. ~ Temperature, data = tempnutsdiff)
+print(levene_test)
+#3 linearity
+plot(tom1, which = 1)
+plot
+#4 independence (think about sample design)
+durbinWatsonTest(tom1)
+```
+*no stat diff, assumptions good
+
+TOC next
+```{r}
+tempnutsdiff$Temperature <- as.factor(tempnutsdiff$Temperature)
+toc1 <- aov(W5.W1...OC. ~ Temperature, data = tempnutsdiff)
+summary(toc1)
+
+#assumption check
+#1. Normality
+qqnorm(residuals(toc1))
+qqline(residuals(toc1), col = "red")
+shapiro_test <- shapiro.test(residuals(toc1))
+print(shapiro_test)
+#2. Homogeneity
+library(car)
+tempnutsdiff$Temperature <- as.character(tempnutsdiff$Temperature)
+levene_test <- leveneTest(W5.W1...OC. ~ Temperature, data = tempnutsdiff)
+print(levene_test)
+#3 linearity
+plot(toc1, which = 1)
+plot
+#4 independence (think about sample design)
+durbinWatsonTest(toc1)
+```
+*no stat diff, assumptions good
+
+TN 
+```{r}
+tempnutsdiff$Temperature <- as.factor(tempnutsdiff$Temperature)
+ton1 <- aov(W5.W1...N. ~ Temperature, data = tempnutsdiff)
+summary(ton1)
+
+#assumption check
+#1. Normality
+qqnorm(residuals(ton1))
+qqline(residuals(ton1), col = "red")
+shapiro_test <- shapiro.test(residuals(ton1))
+print(shapiro_test)
+#2. Homogeneity
+library(car)
+tempnutsdiff$Temperature <- as.character(tempnutsdiff$Temperature)
+levene_test <- leveneTest(W5.W1...N. ~ Temperature, data = tempnutsdiff)
+print(levene_test)
+#3 linearity
+plot(ton1, which = 1)
+plot
+#4 independence (think about sample design)
+durbinWatsonTest(ton1)
+```
+```{r}
+#pairwise comparisons 
+TukeyHSD(ton1)
+```
+*29 & 26
+*31 & 26 
+*33 & 26
+
+
+```{r}
+#FINAL PAM PLOT ~ TEMP EXP (STAT SIG DIFF BETWEEN 26 & 33, NEED TO ADD LINES & STARS)
+
+temppam1 <- ggplot(temppam, aes(x = Temperature, y = pam, fill = Week)) +
+  geom_boxplot(outlier.shape = NA, position = position_dodge(width = 0.8)) +
+  geom_jitter(aes(color = NULL),       # make points black
+              color = "black",
+              width = 0.15, alpha = 0.7, size = 2) +
+  coord_cartesian(ylim = c(0.2, 0.85)) +
+  theme_minimal() +
+  labs(
+    title = "",
+    x = "",
+    y = "Y(II)",
+    fill = "Week"
+  ) +
+  scale_fill_manual(
+    values = c(
+      "1" = "tan4",
+      "2" = "magenta4",
+      "3" = "orange",
+      "4" = "purple",
+      "5" = "brown"
+    )
+  ) +
+  theme(
+    axis.title = element_text(size = 14),      # increase axis titles
+    axis.text = element_text(size = 12),       # increase axis labels
+    legend.title = element_text(size = 14),    # optional: larger legend title
+    legend.text = element_text(size = 12)      # optional: larger legend text
+  )
+
+temppam1
+
+
+```
+```{r}
+temppam1 <- ggplot(temppam, aes(
+  x = Temperature,
+  y = pam,
+  fill = Week
+)) +
+  geom_boxplot(
+    outlier.shape = NA,
+    position = position_dodge(width = 0.8),
+    color = "black"   # <- makes box borders match nutrient plot style
+  ) +
+  geom_jitter(
+    color = "black",
+    width = 0.15,
+    alpha = 0.7,
+    size = 2
+  ) +
+  coord_cartesian(ylim = c(0.2, 0.85)) +
+  labs(
+    title = "",
+    x = "Temperature (°C)",
+    y = "Y(II)",
+    fill = "Week"
+  ) +
+  scale_fill_manual(
+    values = c(
+      "1" = "tan4",
+      "2" = "magenta4",
+      "3" = "orange",
+      "4" = "purple",
+      "5" = "brown"
+    )
+  ) +
+  theme_classic() +  # just the axes, no grid
+    theme(
+  axis.text = element_text(size = 14),
+  axis.title = element_text(size = 12),
+  legend.title = element_text(size = 14),
+  legend.text = element_text(size = 12),
+  legend.position = "right",
+  plot.margin = margin(5, 5, 5, 5)
+
+  )
+temppam1
+```
+
+```{r}
+#final nutrient plot!
+library(ggplot2)
+library(ggpubr)
+
+nuts6.1 <- ggplot(tempnutsdiff, aes(
+    x = factor(Temperature),
+    y = W5.W1...N.,
+    fill = factor(Temperature)   # fill boxes by temperature
+)) +
+  geom_boxplot(outlier.shape = NA, position = position_dodge(width = 0.8)) +
+  geom_jitter(aes(color = NULL),  # remove color mapping from points
+              color = "black",   # make points black
+              width = 0.15, alpha = 0.7, size = 2) +
+  coord_cartesian(ylim = c(-0.3, 0.1)) +
+  theme_minimal() +
+  labs(
+    title = "",
+    x = "Temperature (°C)",
+    y = "%TN Difference",
+    fill = "Temperature"          # legend corresponds to fill
+  ) +
+  scale_fill_manual(
+    values = c(
+      "26" = "blue3",
+      "29" = "darkgreen",
+      "31" = "magenta4",
+      "33" = "red3"
+    )
+  ) +
+  theme_classic() +  # just the axes, no grid
+    theme(
+  axis.text = element_text(size = 14),
+  axis.title = element_text(size = 12),
+  legend.title = element_text(size = 14),
+  legend.text = element_text(size = 12),
+  legend.position = "right",
+  plot.margin = margin(5, 5, 5, 5)
+
+  )
+
+nuts6.1
+
+
+```
+
+```{r}
+env.temp <- plot_grid(
+  temppam1, nuts6.1,
+  labels = c("A", "B"),
+  ncol = 1,
+  align = "v",
+  axis = "l"
+)
+
+env.temp
+```
+
+```{r}
+save_plot("env.temp.pdf", env.temp, 
+          base_width =8 , base_height = 8)
+```
+
+That's a wrap! :)
