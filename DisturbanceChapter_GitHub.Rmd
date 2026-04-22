@@ -714,7 +714,7 @@ legend <- get_legend(
       legend.spacing.y = unit(0.05, "cm"),
       legend.spacing.x = unit(0.05, "cm")
     ) +
-    guides(fill = guide_legend(nrow = 4))
+    guides(fill = guide_legend(nrow = 5))
 )
 
 #  Remove legends from plots
@@ -891,7 +891,7 @@ figure1
 ```
 ```{r}
 save_plot("figure1.2.pdf", figure1, 
-          base_width =10 , base_height = 20)
+          base_width =10.5 , base_height = 20)
 ```
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1780,26 +1780,32 @@ setdiff(unique(c(mdf_temperature2$Family_grouped,
         names(palette_colors3))
 ```
 
-
-
-cleaned up plotting code:
+final workthrough for temperature stacked barplots
 ```{r}
-# Ensure correct x-axis types
-mdf_temperature2$Temperature <- factor(
-  mdf_temperature2$Temperature,
-  levels = c(26, 29, 31, 33)
+all_families3 <- sort(unique(c(
+  mdf_temperature2$Family_grouped,
+  mdf_week2$Family_grouped
+)))
+
+mdf_temperature2$Family_grouped <- factor(
+  mdf_temperature2$Family_grouped,
+  levels = all_families3
 )
 
-mdf_week2$Week <- factor(mdf_week2$Week)
+mdf_week2$Family_grouped <- factor(
+  mdf_week2$Family_grouped,
+  levels = all_families3
+)
 
+palette_colors3 <- palette_colors3[all_families3]
 
-# Plotting function
 plot_bar <- function(df, xvar) {
   ggplot(df, aes(x = .data[[xvar]], y = Percentage, fill = Family_grouped)) +
     geom_bar(stat = "identity") +
     scale_fill_manual(
       values = palette_colors3,
-      drop = TRUE
+      limits = all_families3,   # enforce full set + order
+      drop = FALSE             # keep missing families in legend
     ) +
     labs(
       x = xvar,
@@ -1813,15 +1819,12 @@ plot_bar <- function(df, xvar) {
       legend.title = element_text(size = 11)
     )
 }
-```
 
-
-```{r}
-# Build plots
 plot_temperature2 <- plot_bar(mdf_temperature2, "Temperature")
 plot_week2        <- plot_bar(mdf_week2, "Week")
 
-# Extract legend (from one plot only)
+library(cowplot)
+
 legend2 <- get_legend(
   plot_week2 +
     theme(
@@ -1832,16 +1835,14 @@ legend2 <- get_legend(
     ) +
     guides(fill = guide_legend(nrow = 5))
 )
-# Remove legends from plots
+
 plot_temperature_noleg2 <- plot_temperature2 + theme(legend.position = "none")
 plot_week_noleg2        <- plot_week2 + theme(legend.position = "none")
 
-# Combine plots + legend
 top_row2 <- plot_grid(
   plot_temperature_noleg2,
   plot_week_noleg2,
-  ncol = 2,
-  rel_widths = c(1, 1)
+  ncol = 2
 )
 
 tempbot <- plot_grid(
@@ -1854,13 +1855,12 @@ tempbot <- plot_grid(
 tempbot
 ```
 
-
 ```{r}
 ggsave(
   filename = "tempstacked.pdf",
   plot = tempbot,
-  width = 10,
-  height = 6,
+  width = 11,
+  height = 7,
   dpi = 300
 )
 ```
