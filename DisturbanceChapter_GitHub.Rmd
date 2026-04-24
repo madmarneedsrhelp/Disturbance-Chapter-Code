@@ -418,6 +418,47 @@ for (treat in treatments) {
 }
 
 ```
+flip flop ~ will talk about this in the discussion 
+```{r}
+library(vegan)
+library(pairwiseAdonis)  # make sure this is installed
+
+# Get unique temperature levels
+temps <- unique(sum.samdf$Temperature)
+
+for (temp in temps) {
+  
+  cat("\n--- PERMANOVA: Treatment differences within Temperature =", temp, "---\n")
+  
+  # Subset for this temperature
+  temp_idx <- sum.samdf$Temperature == temp
+  
+  dist_subset <- as.dist(as.matrix(sum.dist.all)[temp_idx, temp_idx])
+  meta_subset <- sum.samdf[temp_idx, ]
+  
+  # Check that we have >1 treatment
+  if (length(unique(meta_subset$Treatment)) > 1) {
+    
+    # Overall PERMANOVA: do treatments differ at this temperature?
+    result <- adonis2(dist_subset ~ Treatment, data = meta_subset, permutations = 9999)
+    print(result)
+    
+    # Pairwise PERMANOVA: WHICH treatments differ at this temperature?
+    cat("\nPairwise comparisons (Treatment within Temperature =", temp, "):\n")
+    
+    pw <- pairwise.adonis2(
+      dist_subset ~ Treatment,
+      data = meta_subset,
+      permutations = 9999
+    )
+    
+    print(pw)
+    
+  } else {
+    cat("Not enough treatment levels to compare at this temperature.\n")
+  }
+}
+```
 
 interaction plots 
 ```{r}
