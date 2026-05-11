@@ -43,23 +43,19 @@ library(tidyverse)
 getwd()
 ```
 
-read in clean phyloseq object & seqtab object from dada2pipeline with rel abundance counts applied
-(ps.cleaner.rel)
+read in clean phyloseq object & seqtab object from dada2pipeline
+(ps.cleaner)
 
-```{r}
-# load it back into R
-ps.cleaner.clr <- readRDS("ch4.ps.cleaner.clr.rds")
-```
 
 applying a CLR (Centered Log-Ratio) transformation 
 making a sequence table (already loaded in clr version above, so skip this for now)
 ```{r}
-ps.cleaner.clr <- microbiome::transform(ps.cleaner.rel,'clr')
+ps.cleaner.clr <- microbiome::transform(ps.cleaner,'clr')
 seqtab.clr <- data.frame(otu_table(ps.cleaner.clr))
 ```
 
 so....
-- ps.cleaner.rel --> relative abundances of sample counts
+- ps.cleaner -->  abundances of sample counts
 - ps.cleaner.clr --> relative abundances with the clr transformation 
 - seqtab.clr --> clr transformed sequence table
 
@@ -1944,6 +1940,8 @@ tempfigure
 save_plot("tempfigure.pdf", tempfigure, 
           base_width =10 , base_height = 20)
 ```
+
+
 
 ~ Alpha Diversity 
 ```{r}
